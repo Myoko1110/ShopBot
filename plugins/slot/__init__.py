@@ -1,7 +1,7 @@
 from discord.ext.commands import Bot
 
-from plugins.slot.slot import Slot
+from plugins.slot.slot import SlotCog
 
 
 def setup(bot: Bot):
-    return bot.add_cog(Slot(bot))
+    return bot.add_cog(SlotCog(bot))

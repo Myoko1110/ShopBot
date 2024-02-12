@@ -4,15 +4,18 @@ import discord
 from discord.ext import commands
 
 import config
+from utils import Database
 
 bot = commands.Bot(intents=discord.Intents.all(), command_prefix=[])
 
 @bot.event
 async def on_ready():
-    await load_extensions()
-    #await bot.tree.sync()
-    print(f"{bot.user} としてログインしました")
+    Database.initialize()
 
+    await load_extensions()
+    await bot.tree.sync()
+
+    print(f"{bot.user} としてログインしました")
     print("同期が完了しました")
 
 

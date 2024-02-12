@@ -1,10 +1,5 @@
-import random
-from datetime import datetime
-from typing import Union
-
 import discord
-from discord import Interaction, app_commands
-from discord._types import ClientT
+from discord import app_commands
 from discord.ext.commands import Bot, Cog
 
 
@@ -12,7 +7,7 @@ class Embed(Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
 
-    @app_commands.command(name="embed")
+    @app_commands.command(name="embed", description="Embedを送信します")
     @app_commands.describe(
         title="タイトル",
         title_url="タイトル(URL)",
@@ -39,30 +34,30 @@ class Embed(Cog):
         field_inline_4="フィールドインライン(4)",
     )
     async def embed(self, ctx: discord.Interaction,
-                  title: str,
-                  title_url: str = None,
-                  description: str = None,
-                  author_name: str = None,
-                  author_name_url: str = None,
-                  author_icon: str = None,
-                  footer_text: str = None,
-                  footer_icon: str = None,
-                  color: str = None,
-                  image: str = None,
-                  thumbnail: str = None,
-                  field_title_1: str = None,
-                  field_value_1: str = None,
-                  field_inline_1: bool = False,
-                  field_title_2: str = None,
-                  field_value_2: str = None,
-                  field_inline_2: bool = False,
-                  field_title_3: str = None,
-                  field_value_3: str = None,
-                  field_inline_3: bool = False,
-                  field_title_4: str = None,
-                  field_value_4: str = None,
-                  field_inline_4: bool = False,
-                  ):
+                    title: str,
+                    title_url: str = None,
+                    description: str = None,
+                    author_name: str = None,
+                    author_name_url: str = None,
+                    author_icon: str = None,
+                    footer_text: str = None,
+                    footer_icon: str = None,
+                    color: str = None,
+                    image: str = None,
+                    thumbnail: str = None,
+                    field_title_1: str = None,
+                    field_value_1: str = None,
+                    field_inline_1: bool = False,
+                    field_title_2: str = None,
+                    field_value_2: str = None,
+                    field_inline_2: bool = False,
+                    field_title_3: str = None,
+                    field_value_3: str = None,
+                    field_inline_3: bool = False,
+                    field_title_4: str = None,
+                    field_value_4: str = None,
+                    field_inline_4: bool = False,
+                    ):
 
         if color:
             embed = discord.Embed(
@@ -106,4 +101,3 @@ class Embed(Cog):
 
         await ctx.channel.send(embed=embed)
         await ctx.response.send_message("Embedを送信しました！", ephemeral=True)
-

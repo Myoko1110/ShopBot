@@ -7,30 +7,33 @@ from discord import Interaction, app_commands
 from discord.ext import tasks
 from discord.ext.commands import Bot, Cog
 
-from plugins.giveaway.utils.GiveawayData import GiveawayDataManager
+from plugins.giveaway.utils import Giveaway
 
 
-class Giveaway(Cog):
+class GiveawayCog(Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
 
         bot.add_view(EntryButton())
         self.giveaway_end.start()
 
-    @app_commands.command(name="gcreate")
+    @app_commands.command(name="gcreate", description="Giveawayを作成します")
+    @app_commands.default_permissions(administrator=True)
     async def gcreate(self, ctx: discord.Interaction):
         await ctx.response.send_modal(GiveawayModal())
 
-    @app_commands.command(name="gend")
+    @app_commands.command(name="gend", description="Giveawayを即座に終了します")
+    @app_commands.describe(id="GiveawayのID(メッセージID)")
+    @app_commands.default_permissions(administrator=True)
     async def gend(self, ctx: discord.Interaction, id: str):
         try:
-            i = GiveawayDataManager.get(int(id))
+            i = Giveaway.get(int(id))
         except ValueError:
-            ctx.response.send_message("Giveawayが見つかりませんでした")
+            ctx.response.send_message("Giveawayが見つかりませんでした", ephemeral=True)
             return
 
-        if i == False:
-            ctx.response.send_message("Giveawayが見つかりませんでした")
+        if not i:
+            ctx.response.send_message("Giveawayが見つかりませんでした", ephemeral=True)
             return
 
         msg = await self.bot.get_channel(i.channel_id).fetch_message(i.message_id)
@@ -38,37 +41,39 @@ class Giveaway(Cog):
 
         if not i.entries:
             await msg.reply("エントリーがなかったため当選者はいませんでした")
-            GiveawayDataManager.delete(i.message_id)
+            Giveaway.delete(i.message_id)
             return
 
         entries = i.winners if i.winners < len(i.entries) else len(i.entries)
 
         winner = [self.bot.get_user(j).mention for j in random.sample(i.entries, entries)]
         await msg.reply(", ".join(winner) + f"が**{i.prize}**を獲得しました！")
-        GiveawayDataManager.delete(i.message_id)
+        Giveaway.delete(i.message_id)
 
         await ctx.response.send_message("")
 
-    @app_commands.command(name="gdelete")
+    @app_commands.command(name="gdelete", description="Giveawayを削除します")
+    @app_commands.describe(id="GiveawayのID(メッセージID)")
+    @app_commands.default_permissions(administrator=True)
     async def gdelete(self, ctx: discord.Interaction, id: str):
         try:
-            i = GiveawayDataManager.get(int(id))
+            i = Giveaway.get(int(id))
         except ValueError:
-            ctx.response.send_message("Giveawayが見つかりませんでした")
+            ctx.response.send_message("Giveawayが見つかりませんでした", ephemeral=True)
             return
 
-        if i == False:
-            ctx.response.send_message("Giveawayが見つかりませんでした")
+        if not i:
+            ctx.response.send_message("Giveawayが見つかりませんでした", ephemeral=True)
 
         msg = await self.bot.get_channel(i.channel_id).fetch_message(i.message_id)
         await msg.edit(view=None)
 
-        GiveawayDataManager.delete(i.message_id)
-        await ctx.response.send_message("Giveawayを削除しました")
+        Giveaway.delete(i.message_id)
+        await ctx.response.send_message("Giveawayを削除しました", ephemeral=True)
 
     @tasks.loop(seconds=10)
     async def giveaway_end(self):
-        giveaway = GiveawayDataManager.getall()
+        giveaway = Giveaway.get_all()
         if not giveaway:
             return
 
@@ -81,14 +86,14 @@ class Giveaway(Cog):
 
                 if not i.entries:
                     await msg.reply("エントリーがなかったため当選者はいませんでした")
-                    GiveawayDataManager.delete(i.message_id)
+                    Giveaway.delete(i.message_id)
                     return
 
-                entries = i.winners if i.winners < len(i.entries) else len(i.entries)
+                entries = i.winner_members if i.winner_members < len(i.entries) else len(i.entries)
 
                 winner = [self.bot.get_user(j).mention for j in random.sample(i.entries, entries)]
                 await msg.reply(", ".join(winner) + f"が**{i.prize}**を獲得しました！")
-                GiveawayDataManager.delete(i.message_id)
+                Giveaway.delete(i.message_id)
 
 
 class GiveawayModal(discord.ui.Modal):
@@ -109,7 +114,7 @@ class GiveawayModal(discord.ui.Modal):
         style=discord.TextStyle.short,
         label="説明",
         required=False,
-        default=None
+        default=None,
     )
 
     def __init__(self):
@@ -146,7 +151,12 @@ class GiveawayModal(discord.ui.Modal):
 
         msg = await ctx.channel.send(embed=embed, view=EntryButton())
 
-        GiveawayDataManager.create(msg.id, end_at, ctx.channel_id, int(self.winners.value), self.prize.value)
+        try:
+            Giveaway.create(ctx.guild_id, ctx.channel_id, msg.id, ctx.user.id, self.prize.value,
+                            int(self.winners.value), end_at)
+        except ValueError:
+            await ctx.response.send_message(f"獲得者数は整数を入力してください", ephemeral=True)
+            return
 
         await ctx.response.send_message(f"Giveawayを作成しました ID:{msg.id}", ephemeral=True)
 
@@ -158,8 +168,8 @@ class EntryButton(discord.ui.View):
 
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="🎉", custom_id="entry_button")
     async def entry(self, ctx: discord.Interaction, button: discord.ui.Button):
-        entry = GiveawayDataManager.add_entries(ctx.message.id, ctx.user.id)
-        if entry == False:
+        entry = Giveaway.add_entry(ctx.message.id, ctx.user.id)
+        if not entry:
             await ctx.response.send_message("すでにエントリー済みです", ephemeral=True)
             return
 

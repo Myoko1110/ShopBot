@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class TicketStatus(Enum):
+class RequestTicketStatus(Enum):
     WAITING = "WAITING"
     SERVING = "SERVING"
     COMPLETED = "COMPLETED"
