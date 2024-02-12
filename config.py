@@ -1,4 +1,4 @@
-TOKEN = "OTYwODgwNTk4MzY3NDczNzQ3.GiCE6s.cbOFOWEkGIUzr-zGep0z0ftsF0YT4c8fMbcJO0"
+TOKEN = ""
 
 # チケット系
 TICKET_CHANNEL_NAME = "🎫-{username}"
