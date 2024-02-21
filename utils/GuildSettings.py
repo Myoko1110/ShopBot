@@ -11,6 +11,7 @@ class GuildSettings:
                  buyer_role: Union[int, None],
                  admin_role: Union[int, None],
                  verify_role: Union[int, None],
+                 handle_role: Union[int, None],
                  log_channel: Union[int, None],
                  request_ticket_category: Union[int, None],
                  slot_category: Union[int, None],
@@ -21,6 +22,7 @@ class GuildSettings:
         self.buyer_role = buyer_role
         self.admin_role = admin_role
         self.verify_role = verify_role
+        self.handle_role = handle_role
         self.log_channel = log_channel
         self.request_ticket_category = request_ticket_category
         self.slot_category = slot_category
@@ -97,6 +99,24 @@ class GuildSettings:
 
         sql = "REPLACE INTO guild_settings(guild_id, verify_role) VALUES(?, ?)"
         cur.execute(sql, (guild_id, verify_role))
+
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def set_handle(guild_id: int, handle_role: Union[int, None] = None):
+        """
+        ギルドの設定を設定(更新)します
+
+        :param guild_id: ギルドID
+        :param handle_role: ハンドル変更可能なロール
+        """
+
+        conn = Database.get_connection()
+        cur = conn.cursor()
+
+        sql = "REPLACE INTO guild_settings(guild_id, handle_role) VALUES(?, ?)"
+        cur.execute(sql, (guild_id, handle_role))
 
         conn.commit()
         conn.close()
@@ -192,6 +212,7 @@ class GuildSettings:
             result["buyer_role"],
             result["admin_role"],
             result["verify_role"],
+            result["handle_role"],
             result["log_channel"],
             result["request_category"],
             result["slot_category"],

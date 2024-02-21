@@ -79,9 +79,9 @@ class New(Cog):
         mode=[
             app_commands.Choice(name="ClientRole", value="ClientRole"),
             app_commands.Choice(name="BuyerRole", value="BuyerRole"),
-            app_commands.Choice(name="AdminRole",
-                                value="AdminRole"),
+            app_commands.Choice(name="AdminRole", value="AdminRole"),
             app_commands.Choice(name="VerifyRole", value="VerifyRole"),
+            app_commands.Choice(name="HandleRole", value="HandleRole"),
         ]
     )
     @app_commands.rename(mode="タイプ", role="ロール")
@@ -116,6 +116,14 @@ class New(Cog):
                 GuildSettings.set_verify(ctx.guild_id, role.id)
             else:
                 GuildSettings.set_verify(ctx.guild_id, None)
+
+        elif mode == "HandleRole":
+            if role:
+                GuildSettings.set_handle(ctx.guild_id, role.id)
+            else:
+                GuildSettings.set_handle(ctx.guild_id, None)
+            await ctx.response.send_message("ロールの設定を更新しました", ephemeral=True)
+            return
 
         else:
             await ctx.response.send_message("タイプが不明です", ephemeral=True)

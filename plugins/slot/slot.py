@@ -17,9 +17,9 @@ class SlotCog(Cog):
         self.task.start()
 
     @app_commands.command(name="makeslot", description="スロットを作成します")
-    @app_commands.describe(user="ユーザー", expiry_day="有効期限(日)")
+    @app_commands.describe(user="ユーザー", expiry_date="有効期限(日)")
     @app_commands.default_permissions(administrator=True)
-    async def make(self, ctx: discord.Interaction, user: discord.User, expire_day: int = None):
+    async def make(self, ctx: discord.Interaction, user: discord.User, expiry_date: int = None):
         if ctx.user.guild_permissions.administrator:
 
             # ギルド設定を取得
@@ -34,13 +34,13 @@ class SlotCog(Cog):
             channel_name = config.SLOT_CHANNEL_NAME.replace("{username}", user.name)
 
             # 期限があれば
-            if expire_day:
+            if expiry_date:
 
                 # 期限を計算
-                expire = datetime.date.today() + datetime.timedelta(days=expire_day)
+                expire = datetime.date.today() + datetime.timedelta(days=expiry_date)
 
                 # メッセージとチャンネル名を作成
-                text = f"{user.mention}\n期限は{expire_day}日後です"
+                text = f"{user.mention}\n期限は{expiry_date}日後です"
                 channel_name = channel_name.replace("{expiry}", f"-{expire.month}月{expire.day}日")
 
             else:

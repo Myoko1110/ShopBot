@@ -2,6 +2,7 @@ import discord
 from discord import app_commands
 from discord.ext.commands import Bot, Cog
 
+from utils import GuildSettings
 
 enable = discord.Embed(
     title="対応状況",
@@ -36,14 +37,30 @@ class HandleButton(discord.ui.View):
     @discord.ui.button(style=discord.ButtonStyle.primary, emoji="🔁",
                        custom_id="handle_button")
     async def request(self, ctx: discord.Interaction, button):
-        if ctx.user.guild_permissions.administrator:
-            description = ctx.message.embeds[0].description
+        setting = GuildSettings.get(ctx.guild_id)
+        if setting.handle_role:
+            if ctx.user.get_role(setting.handle_role):
+                description = ctx.message.embeds[0].description
 
-            if description == "現在対応可能です":
-                await ctx.message.edit(embed=disable)
+                if description == "現在対応可能です":
+                    await ctx.message.edit(embed=disable)
+                else:
+                    await ctx.message.edit(embed=enable)
+
+                await ctx.response.send_message("対応状況を更新しました！", ephemeral=True)
             else:
-                await ctx.message.edit(embed=enable)
+                await ctx.response.send_message("実行できません", ephemeral=True)
 
-            await ctx.response.send_message("対応状況を更新しました！", ephemeral=True)
         else:
-            await ctx.response.send_message("実行できません", ephemeral=True)
+            if ctx.user.guild_permissions.administrator:
+                description = ctx.message.embeds[0].description
+
+                if description == "現在対応可能です":
+                    await ctx.message.edit(embed=disable)
+                else:
+                    await ctx.message.edit(embed=enable)
+
+                await ctx.response.send_message("対応状況を更新しました！", ephemeral=True)
+
+            else:
+                await ctx.response.send_message("実行できません", ephemeral=True)
