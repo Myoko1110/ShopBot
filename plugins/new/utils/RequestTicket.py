@@ -150,13 +150,13 @@ class RequestTicket:
         """
 
         overwrites = {
-            category.guild.get_role(setting.admin_role):
-                discord.PermissionOverwrite(read_messages=True, send_messages=True),
             user:
                 discord.PermissionOverwrite(read_messages=True, send_messages=True),
             category.guild.default_role:
                 discord.PermissionOverwrite(read_messages=False, send_messages=False),
         }
+        if setting.admin_role:
+            overwrites[category.guild.get_role(setting.admin_role)] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
         channel = config.TICKET_CHANNEL_NAME.replace("{username}", user.name)
         return await category.create_text_channel(channel, overwrites=overwrites)

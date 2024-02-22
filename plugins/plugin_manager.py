@@ -7,7 +7,6 @@ from discord.ext.commands import Cog, Bot, ExtensionAlreadyLoaded, ExtensionNotL
 
 ALLOWED_USERS = [
     291126102108143616,
-    886089494204399687
 ]
 
 

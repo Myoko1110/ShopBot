@@ -18,7 +18,8 @@ class Database:
         cur.execute("CREATE TABLE IF NOT EXISTS guild_settings(guild_id INTEGER PRIMARY KEY, client_role INTEGER, buyer_role INTEGER, admin_role INTEGER, verify_role INTEGER, handle_role INTEGER, log_channel INTEGER, request_category INTEGER, slot_category INTEGER, ticket_category INTEGER)")
         cur.execute("CREATE TABLE IF NOT EXISTS slot_channels(guild_id INTEGER, channel_id INTEGER, user_id INTEGER, expiry TEXT, created_at TEXT)")
         cur.execute("CREATE TABLE IF NOT EXISTS giveaway(guild_id INTEGER, channel_id INTEGER, message_id INTEGER PRIMARY KEY, host_id INTEGER, prize TEXT, winner_members INTEGER, entries JSON, end_at TEXT, created_at TEXT)")
-        cur.execute("CREATE TABLE IF NOT EXISTS verify_buttons(guild_id INTEGER, channel_id INTEGER, message_id INTEGER PRIMARY KEY, role_id INTEGER)")
+        cur.execute("CREATE TABLE IF NOT EXISTS giveaway(guild_id INTEGER, channel_id INTEGER, message_id INTEGER PRIMARY KEY, host_id INTEGER, prize TEXT, winner_members INTEGER, entries JSON, end_at TEXT, created_at TEXT)")
+        cur.execute("CREATE TABLE IF NOT EXISTS tickets(guild_id INTEGER, channel_id INTEGER, message_id INTEGER, role_id INTEGER, category_id INTEGER, first_message TEXT)")
         conn.commit()
         conn.close()
 
