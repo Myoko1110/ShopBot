@@ -253,7 +253,7 @@ class New(Cog):
 
             # ギルド設定を取得
             setting = GuildSettings.get(msg.guild.id)
-            if not setting.log_channel:
+            if not setting or not setting.log_channel:
                 return
 
             # ログメッセージを取得
@@ -335,7 +335,7 @@ class RequestSelect(discord.ui.Select):
 
         # ログ送信
         log_id = None
-        if setting.log_channel:
+        if setting and setting.log_channel:
             c = self.bot.get_channel(setting.log_channel)
             embed = discord.Embed(
                 title=f"依頼: {self.values[0]}",
@@ -364,7 +364,7 @@ class RequestSelect(discord.ui.Select):
         await ctx.response.send_message(
             f"チケットチャンネルを作成しました: <#{ticket.id}>", ephemeral=True)
 
-        if setting.client_role:
+        if setting and setting.client_role:
             await ctx.user.add_roles(ctx.guild.get_role(setting.client_role))
 
         print(f"チケットチャンネルを作成しました: {ticket.id} by{ctx.user}")
@@ -407,7 +407,7 @@ class RequestModal(discord.ui.Modal):
 
         # ログ送信
         log_id = None
-        if setting.log_channel:
+        if setting and setting.log_channel:
             c = self.bot.get_channel(setting.log_channel)
             embed = discord.Embed(
                 title=f"依頼: {self.request}",
@@ -433,7 +433,7 @@ class RequestModal(discord.ui.Modal):
         await ctx.response.send_message(
             f"チケットチャンネルを作成しました: <#{ticket.id}>", ephemeral=True)
         try:
-            if setting.client_role:
+            if setting and setting.client_role:
                 await ctx.user.add_roles(ctx.guild.get_role(setting.client_role))
         except Exception:
             pass
@@ -485,7 +485,7 @@ class ConfirmButton(discord.ui.View):
 
         setting = GuildSettings.get(ctx.guild_id)
 
-        if setting.log_channel:
+        if setting and setting.log_channel:
             d = RequestTicket.get(ctx.channel.id)
             log = await self.bot.get_channel(setting.log_channel).fetch_message(d.log_message_id)
 
@@ -503,9 +503,9 @@ class ConfirmButton(discord.ui.View):
             self.user = ctx.guild.get_member(self.user.id)
 
         try:
-            if setting.buyer_role:
+            if setting and setting.buyer_role:
                 await self.user.add_roles(ctx.guild.get_role(setting.buyer_role))
-            if setting.client_role:
+            if setting and setting.client_role:
                 await self.user.remove_roles(ctx.guild.get_role(setting.client_role))
 
         except Exception:

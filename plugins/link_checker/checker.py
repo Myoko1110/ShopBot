@@ -37,13 +37,13 @@ class LinkChecker(Cog):
         if not setting or not setting.link_checker:
             return
 
-        if "pay.paypay.ne.jp" in msg.content:
+        if "pay.paypay.ne.jp" in msg.content or "qr.paypay.ne.jp" in msg.content:
             link_result = re.findall(r"\[(.*?)]\((https?://.*?)\)", msg.content)
             if len(link_result) != 0:
                 links = {}
 
                 for i in link_result:
-                    if not i[1].startswith("https://pay.paypay.ne.jp/"):
+                    if not i[1].startswith("https://pay.paypay.ne.jp/") and not i[1].startswith("https://qr.paypay.ne.jp/"):
                         links[i[1]] = True
                     else:
                         links[i[1]] = False

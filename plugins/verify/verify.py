@@ -42,7 +42,11 @@ class VerifyButtonView(discord.ui.View):
     async def request(self, ctx: discord.Interaction, button):
         if not ctx.user.bot:
             setting = GuildSettings.get(ctx.guild_id)
-            role = ctx.guild.get_role(setting.verify_role)
 
-            await ctx.user.add_roles(role)
-            await ctx.response.send_message("ロールを付与しました！", ephemeral=True)
+            if setting and setting.verify_role:
+                role = ctx.guild.get_role(setting.verify_role)
+                await ctx.user.add_roles(role)
+                await ctx.response.send_message("ロールを付与しました！", ephemeral=True)
+
+            else:
+                await ctx.response.send_message("ロールを付与に失敗しました。運営にお問い合わせください。", ephemeral=True)

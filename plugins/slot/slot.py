@@ -26,7 +26,7 @@ class SlotCog(Cog):
             setting = GuildSettings.get(ctx.guild_id)
 
             # スロットカテゴリーがなければエラーを返す
-            if not setting.slot_category:
+            if not setting or not setting.slot_category:
                 await ctx.response.send_message("スロットチャンネルを作成するカテゴリーが設定されていません。/channelsetでSlotCategoryを設定してください", ephemeral=True)
                 return
 
@@ -53,7 +53,7 @@ class SlotCog(Cog):
                 channel_name = channel_name.replace("{expiry}", "-永久")
 
             # logチャンネルが設定されていればログを送信
-            if setting.log_channel:
+            if setting and setting.log_channel:
                 log_channel = self.bot.get_channel(setting.log_channel)
                 embed = discord.Embed(
                     title=f"スロット",
@@ -72,7 +72,7 @@ class SlotCog(Cog):
 
             # 作成するチャンネルの権限を設定
             overwrites = {}
-            if setting.admin_role:
+            if setting and setting.admin_role:
                 overwrites[category.guild.get_role(setting.admin_role)] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
             overwrites[user] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
             overwrites[category.guild.default_role] = discord.PermissionOverwrite(read_messages=True, send_messages=False)

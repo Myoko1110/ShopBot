@@ -155,7 +155,7 @@ class RequestTicket:
             category.guild.default_role:
                 discord.PermissionOverwrite(read_messages=False, send_messages=False),
         }
-        if setting.admin_role:
+        if setting and setting.admin_role:
             overwrites[category.guild.get_role(setting.admin_role)] = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
         channel = config.TICKET_CHANNEL_NAME.replace("{username}", user.name)
