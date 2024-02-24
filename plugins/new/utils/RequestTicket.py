@@ -72,7 +72,7 @@ class RequestTicket:
         cur = conn.cursor()
 
         sql = "UPDATE request_tickets SET status = ? WHERE channel_id = ?"
-        cur.execute(sql, (status.value, channel_id))
+        cur.execute(sql, (status.name, channel_id))
 
         conn.commit()
         conn.close()

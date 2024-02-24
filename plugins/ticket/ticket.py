@@ -1,12 +1,12 @@
 import asyncio
+from typing import Union
 
 import discord
 from discord import app_commands
 from discord.ext.commands import Bot, Cog
 
 import config
-from plugins.ticket.utils import Ticket
-from utils import GuildSettings
+from plugins.ticket.utils import TicketButton
 
 
 class TicketCog(Cog):
@@ -15,17 +15,19 @@ class TicketCog(Cog):
 
         bot.add_view(CompleteButton(self.bot))
 
-        for i in Ticket.get_all():
-            role = self.bot.get_guild(i.guild_id).get_role(i.role_id) if i.role_id else None
-            bot.add_view(TicketButton(self.bot, self.bot.get_channel(i.category_id), role, i.first_message), message_id=i.message_id)
+        ticket_buttons = TicketButton.get_all()
+        if ticket_buttons:
+            for i in ticket_buttons:
+                role = self.bot.get_guild(i.guild_id).get_role(i.role_id) if i.role_id else None
+                bot.add_view(TicketButtonView(self.bot, self.bot.get_channel(i.category_id), role, i.first_message), message_id=i.message_id)
 
     @app_commands.command(name="ticket", description="チケット作成ボタンを送信します")
-    @app_commands.describe(title="タイトル",
+    @app_commands.describe(title="パネルのタイトル",
                            description="パネルの説明",
                            image="パネルに乗せる画像のURL",
                            category="チケットを作成するカテゴリ",
                            role="チケット作成時にメンションするロール",
-                           first_message="チケット作成時に最初に送るメッセージ",)
+                           first_message="チケット作成時に最初に送るメッセージ")
     @app_commands.default_permissions(administrator=True)
     async def ticket(self,
                      ctx: discord.Interaction,
@@ -49,23 +51,30 @@ class TicketCog(Cog):
 
         embed = discord.Embed(
             title=title,
-            description=description
+            description=description,
+            color=discord.Color.random(),
         )
 
         if image:
             embed.set_image(url=image)
 
-        message = await ctx.channel.send(embed=embed, view=TicketButton(self.bot, category, role, first_message))
+        message = await ctx.channel.send(embed=embed, view=TicketButtonView(self.bot, category, role, first_message))
 
         role_id = None
         if role:
             role_id = role.id
-        Ticket.create(ctx.guild_id, ctx.channel_id, message.id, role_id, category.id, first_message)
+        TicketButton.create(ctx.guild_id, ctx.channel_id, message.id, role_id, category.id, first_message)
         await ctx.response.send_message("チケット作成ボタンを送信しました", ephemeral=True)
 
 
-class TicketButton(discord.ui.View):
-    def __init__(self, bot: Bot, category: discord.CategoryChannel, role: discord.Role=None, first_message=None, timeout=None):
+class TicketButtonView(discord.ui.View):
+    def __init__(self,
+                 bot: Bot,
+                 category: discord.CategoryChannel,
+                 role: Union[discord.Role, None] = None,
+                 first_message=None,
+                 timeout=None
+                 ):
         self.bot = bot
         self.category = category
         self.role = role
@@ -77,10 +86,11 @@ class TicketButton(discord.ui.View):
         ticket_name = config.TICKET_CHANNEL_NAME.replace("{username}", ctx.user.name)
         ch = await self.category.create_text_channel(name=ticket_name)
 
+        content = ""
         if self.role:
-            content = f"{self.role.mention}\n{self.first_message}"
-        else:
-            content = self.first_message
+            content = f"{self.role.mention}"
+        if self.first_message:
+            content += f"\n{self.first_message}"
 
         await ch.send(content, view=CompleteButton(self.bot))
         await ctx.response.send_message(f"チケットを作成しました: {ch.mention}", ephemeral=True)

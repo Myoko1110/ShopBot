@@ -26,6 +26,10 @@ class Handle(Cog):
     @app_commands.command(name="handle", description="ハンドルを送信します")
     @app_commands.default_permissions(administrator=True)
     async def handle(self, ctx: discord.Interaction):
+        setting = GuildSettings.get(ctx.guild_id)
+        if not setting.handle_role:
+            await ctx.response.send_message("ハンドルを操作できるロールが設定されていません。/roleset で設定してください。")
+            return
         await ctx.response.send_message(embed=enable, view=HandleButton())
 
 

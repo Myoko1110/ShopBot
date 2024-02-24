@@ -1,6 +1,6 @@
 from discord.ext.commands import Bot
 
-from plugins.new.command import New
+from plugins.new.new import New
 
 
 def setup(bot: Bot):

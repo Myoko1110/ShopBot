@@ -14,6 +14,9 @@ class RequestButton:
                  channel_id: int,
                  message_id: int,
                  request: list,
+                 category_id: int,
+                 role_id: int,
+                 first_message: str,
                  created_at: datetime):
         self.title = title
         self.description = description
@@ -21,22 +24,28 @@ class RequestButton:
         self.channel_id = channel_id
         self.message_id = message_id
         self.request = request
+        self.category_id = category_id
+        self.role_id = role_id
+        self.first_message = first_message
         self.created_at = created_at
 
     @staticmethod
-    def add(title: str,
-            description: str,
-            guild_id: int,
-            channel_id: int,
-            message_id: int,
-            request: list):
+    def create(title: str,
+               description: str,
+               guild_id: int,
+               channel_id: int,
+               message_id: int,
+               request: list,
+               category_id: int,
+               role_id: int,
+               first_message: str):
 
         conn = Database.get_connection()
         cur = conn.cursor()
 
         now = datetime.now().replace(microsecond=0)
-        sql = "INSERT INTO request_buttons VALUES(?, ?, ?, ?, ?, ?, ?)"
-        cur.execute(sql, (guild_id, channel_id, message_id, title, description, json.dumps(request), str(now)))
+        sql = "INSERT INTO request_buttons VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        cur.execute(sql, (guild_id, channel_id, message_id, title, description, json.dumps(request), category_id, role_id, first_message, str(now)))
 
         conn.commit()
         conn.close()
@@ -61,5 +70,8 @@ class RequestButton:
             result["channel_id"],
             result["message_id"],
             json.loads(result["requests"]),
+            result["category_id"],
+            result["role_id"],
+            result["first_message"],
             datetime.strptime(result["created_at"], "%Y-%m-%d %H:%M:%S")
         ) for result in results]

@@ -16,6 +16,7 @@ class GuildSettings:
                  request_ticket_category: Union[int, None],
                  slot_category: Union[int, None],
                  ticket_category: Union[int, None],
+                 link_checker: bool = False,
                  ):
         self.guild_id = guild_id
         self.client_role = client_role
@@ -27,6 +28,7 @@ class GuildSettings:
         self.request_ticket_category = request_ticket_category
         self.slot_category = slot_category
         self.ticket_category = ticket_category
+        self.link_checker = link_checker
 
     def __str__(self):
         return f"RoleSetting({self.guild_id})"
@@ -194,6 +196,22 @@ class GuildSettings:
         conn.close()
 
     @staticmethod
+    def set_link_checker(guild_id: int, switch: bool):
+        conn = Database.get_connection()
+        cur = conn.cursor()
+
+        if switch:
+            link_checker = 1
+        else:
+            link_checker = 0
+
+        sql = "REPLACE INTO guild_settings(guild_id, link_checker) VALUES(?, ?)"
+        cur.execute(sql, (guild_id, link_checker))
+
+        conn.commit()
+        conn.close()
+
+    @staticmethod
     def get(guild_id: int):
         conn = Database.get_connection()
         conn.row_factory = sqlite3.Row
@@ -217,4 +235,5 @@ class GuildSettings:
             result["request_category"],
             result["slot_category"],
             result["ticket_category"],
+            bool(result["link_checker"])
         )

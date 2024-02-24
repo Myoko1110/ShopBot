@@ -23,7 +23,12 @@ class New(Cog):
             for i in request_button:
                 self.bot.add_view(
                     RequestButtonView(
-                        [discord.SelectOption(label=i, description="") for i in i.request], bot),
+                        [discord.SelectOption(label=i, description="") for i in i.request],
+                        self.bot,
+                        self.bot.get_channel(i.category_id),
+                        self.bot.get_guild(i.guild_id).get_role(i.role_id) if i.role_id else None,
+                        i.first_message
+                    ),
                     message_id=i.message_id
                 )
 
@@ -37,20 +42,44 @@ class New(Cog):
                 )
 
     @app_commands.command(name="new", description="チケットを作成する依頼ボタンを作成します")
+    @app_commands.describe(title="パネルのタイトル",
+                           description="パネルの説明",
+                           menu_list="依頼セレクトパネルに表示するメニュー(例: 項目1,項目2,項目3)",
+                           image="パネルに乗せる画像のURL",
+                           category="チケットを作成するカテゴリ",
+                           role="チケット作成時にメンションするロール",
+                           first_message="チケット作成時に最初に送るメッセージ",
+                           )
     @app_commands.default_permissions(administrator=True)
-    async def new(self, ctx: discord.Interaction, title: str, message: str, menu_list: str):
+    async def new(self,
+                  ctx: discord.Interaction,
+                  title: str,
+                  description: str,
+                  menu_list: str,
+                  category: discord.CategoryChannel,
+                  role: discord.Role = None,
+                  image: str = None,
+                  first_message: str = None
+                  ):
         if ctx.user.guild_permissions.administrator:
+            """
             setting = GuildSettings.get(ctx.guild_id)
             if not setting.request_ticket_category:
-                await ctx.response.send_message("チケットのカテゴリーが設定されていません。/channelset で設定してください。", ephemeral=True)
+                await ctx.response.send_message(
+                    "チケットのカテゴリーが設定されていません。/channelset で設定してください。",
+                    ephemeral=True)
                 return
+            """
 
             # embed作成
             embed = discord.Embed(
                 title=title,
-                description=message,
-                # color=""
+                description=description,
+                color=discord.Color.random(),
             )
+
+            if image:
+                embed.set_image(url=image)
 
             # リストを読み込み
             menu_split = re.split(", |,", menu_list)
@@ -59,14 +88,17 @@ class New(Cog):
             menu = [discord.SelectOption(label=i, description="") for i in menu_split]
 
             # チャンネルにembed送信
-            button = RequestButtonView(menu, self.bot)
+            button = RequestButtonView(menu, self.bot, category, role, first_message)
 
             # 依頼ボタンを送信
             m = await ctx.channel.send(embed=embed, view=button)
             await ctx.response.send_message("依頼選択リストを送信しました", ephemeral=True)
 
             # 依頼ボタンの情報を保存
-            RequestButton.add(title, message, ctx.guild_id, ctx.channel_id, m.id, menu_split)
+            role_id = None
+            if role:
+                role_id = role.id
+            RequestButton.create(title, description, ctx.guild_id, ctx.channel_id, m.id, menu_split, category.id, role_id, first_message)
             print(f"依頼選択リストを送信しました: {m.id}")
 
         else:
@@ -131,7 +163,9 @@ class New(Cog):
 
         if role:
             if ctx.guild.self_role.position < role.position:
-                await ctx.response.send_message("ロールの設定を更新しました\nロールの順序を入れ替えてください", file=discord.File("RolePriority.gif"), ephemeral=True)
+                await ctx.response.send_message(
+                    "ロールの設定を更新しました\nロールの順序を入れ替えてください",
+                    file=discord.File("RolePriority.gif"), ephemeral=True)
                 return
 
         await ctx.response.send_message("ロールの設定を更新しました", ephemeral=True)
@@ -140,9 +174,9 @@ class New(Cog):
     @app_commands.choices(
         mode=[
             app_commands.Choice(name="LogChannel", value="LogChannel"),
-            app_commands.Choice(name="RequestTicketCategory", value="RequestTicketCategory"),
+            # app_commands.Choice(name="RequestTicketCategory", value="RequestTicketCategory"),
             app_commands.Choice(name="SlotCategory", value="SlotCategory"),
-            app_commands.Choice(name="TicketCategory", value="TicketCategory"),
+            # app_commands.Choice(name="TicketCategory", value="TicketCategory"),
         ]
     )
     @app_commands.rename(mode="タイプ", channel="チャンネル")
@@ -153,8 +187,9 @@ class New(Cog):
                          channel: Union[discord.CategoryChannel, discord.TextChannel]):
         if mode == "LogChannel":
             if not isinstance(channel, discord.TextChannel):
-                await ctx.response.send_message("チャンネル引数にはテキストチャンネルを指定してください",
-                                                ephemeral=True)
+                await ctx.response.send_message(
+                    "チャンネル引数にはテキストチャンネルを指定してください",
+                    ephemeral=True)
                 return
             GuildSettings.set_log_channel(ctx.guild_id, channel.id)
             await ctx.response.send_message("チャンネルの設定を更新しました", ephemeral=True)
@@ -240,9 +275,18 @@ class New(Cog):
 
 class RequestButtonView(discord.ui.View):
 
-    def __init__(self, req: list[discord.SelectOption], bot: Bot, timeout=None):
+    def __init__(self,
+                 req: list[discord.SelectOption],
+                 bot: Bot,
+                 category: discord.CategoryChannel,
+                 role: Union[discord.Role, None],
+                 first_message: str,
+                 timeout=None):
         self.req = req
         self.bot = bot
+        self.category = category
+        self.role = role
+        self.first_message = first_message
         super().__init__(timeout=timeout)
 
     @discord.ui.button(label="依頼する", style=discord.ButtonStyle.success, emoji="🎫",
@@ -255,7 +299,7 @@ class RequestButtonView(discord.ui.View):
         )
 
         # select作成
-        select = RequestSelect(req=self.req, bot=self.bot)
+        select = RequestSelect(self.req, self.bot, self.category, self.role, self.first_message)
 
         # viewに追加
         view_select = discord.ui.View()
@@ -267,8 +311,16 @@ class RequestButtonView(discord.ui.View):
 
 class RequestSelect(discord.ui.Select):
 
-    def __init__(self, req: list[discord.SelectOption], bot: Bot):
+    def __init__(self,
+                 req: list[discord.SelectOption],
+                 bot: Bot,
+                 category: discord.CategoryChannel,
+                 role: Union[discord.Role, None],
+                 first_message: str):
         self.bot = bot
+        self.category = category
+        self.role = role
+        self.first_message = first_message
         super().__init__(placeholder="選択", options=req)
 
     async def callback(self, ctx: discord.Interaction):
@@ -278,8 +330,8 @@ class RequestSelect(discord.ui.Select):
 
         setting = GuildSettings.get(ctx.guild_id)
 
-        category = self.bot.get_channel(setting.request_ticket_category)
-        ticket = await RequestTicket.create_ticket_channel(ctx.user, category, setting)
+        # category = self.bot.get_channel(setting.request_ticket_category)
+        ticket = await RequestTicket.create_ticket_channel(ctx.user, self.category, setting)
 
         # ログ送信
         log_id = None
@@ -297,7 +349,14 @@ class RequestSelect(discord.ui.Select):
 
         # 終了ボタン
         complete_button = CompleteButton(ctx.user, self.bot)
-        btn = await ticket.send(view=complete_button)
+
+        content = ""
+        if self.role:
+            content = f"{self.role.mention}\n"
+        if self.first_message:
+            content += f"{self.first_message}\n"
+        content += f"依頼内容: {self.values[0]}"
+        btn = await ticket.send(content, view=complete_button)
 
         # セッション作成
         RequestTicket.add(ctx.guild_id, ticket.id, ctx.user.id, log_id, self.values[0], btn.id)
@@ -389,8 +448,7 @@ class CompleteButton(discord.ui.View):
         self.bot = bot
         super().__init__(timeout=timeout)
 
-    @discord.ui.button(label="終了", style=discord.ButtonStyle.primary, emoji="🎫",
-                       custom_id="stop_ticket")
+    @discord.ui.button(label="終了", style=discord.ButtonStyle.red, custom_id="stop_request_ticket")
     async def complete(self, ctx: discord.Interaction, button: discord.ui.Button):
         embed = discord.Embed(
             title="本当にこの依頼を終了しますか？",
@@ -412,7 +470,7 @@ class ConfirmButton(discord.ui.View):
 
     """ボタンの応答"""
 
-    @discord.ui.button(label="終了", style=discord.ButtonStyle.red, emoji="🎫")
+    @discord.ui.button(label="終了", style=discord.ButtonStyle.red)
     async def complete(self, ctx: discord.Interaction, button: discord.ui.Button):
         embed = discord.Embed(
             title="ご利用ありがとうございました",
@@ -427,17 +485,18 @@ class ConfirmButton(discord.ui.View):
 
         setting = GuildSettings.get(ctx.guild_id)
 
-        d = RequestTicket.get(ctx.channel.id)
-        log = await self.bot.get_channel(setting.log_channel).fetch_message(d.log_message_id)
+        if setting.log_channel:
+            d = RequestTicket.get(ctx.channel.id)
+            log = await self.bot.get_channel(setting.log_channel).fetch_message(d.log_message_id)
 
-        embed = log.embeds[0]
-        embed.colour = discord.Color.green()
-        embed.description = "依頼完了"
+            embed = log.embeds[0]
+            embed.colour = discord.Color.green()
+            embed.description = "依頼完了"
 
-        await log.edit(embed=embed)
-        RequestTicket.update(ctx.channel_id, RequestTicketStatus.COMPLETED)
+            await log.edit(embed=embed)
+            RequestTicket.update(ctx.channel_id, RequestTicketStatus.COMPLETED)
 
-        print(f"依頼が完了しました: {d.channel_id}")
+        print(f"依頼が完了しました: {ctx.channel_id}")
 
         # ロール付与
         if isinstance(self.user, discord.User):
