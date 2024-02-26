@@ -15,7 +15,7 @@ class Verify(Cog):
     async def new(self, ctx: discord.Interaction):
         if not ctx.user.bot and ctx.user.guild_permissions.administrator:
             setting = GuildSettings.get(ctx.guild_id)
-            if not setting.verify_role:
+            if not setting or not setting.verify_role:
                 await ctx.response.send_message("認証時に付与するロールが設定されていません。/channelsetで設定してください。", ephemeral=True)
                 return
 

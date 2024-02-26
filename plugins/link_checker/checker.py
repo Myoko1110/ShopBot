@@ -40,40 +40,83 @@ class LinkChecker(Cog):
         if "pay.paypay.ne.jp" in msg.content or "qr.paypay.ne.jp" in msg.content:
             link_result = re.findall(r"\[(.*?)]\((https?://.*?)\)", msg.content)
             if len(link_result) != 0:
-                links = {}
+                fake_links = []
+                not_pay_but_qr = []
+                not_qr_but_pay = []
+                safe_links = []
 
                 for i in link_result:
-                    if not i[1].startswith("https://pay.paypay.ne.jp/") and not i[1].startswith("https://qr.paypay.ne.jp/"):
-                        links[i[1]] = True
+                    if not i[1].startswith("https://pay.paypay.ne.jp/") and not i[1].startswith(
+                            "https://qr.paypay.ne.jp/"):
+                        fake_links.append(i[1])
+                    elif "pay.paypay.ne.jp" in i[0] and i[1].startswith("https://qr.paypay.ne.jp"):
+                        not_pay_but_qr.append(i[1])
+                    elif "qr.paypay.ne.jp" in i[0] and i[1].startswith("https://pay.paypay.ne.jp"):
+                        not_qr_but_pay.append(i[1])
                     else:
-                        links[i[1]] = False
+                        safe_links.append(i[1])
 
-                if links.values():
-                    if True in links.values():
-                        embed = discord.Embed(
-                            title=":warning: 詐欺リンク",
-                            description="このリンクはPayPayの支払いリンクではありません",
-                            color=discord.Color.red(),
-                        )
+                if fake_links:
+                    embed = discord.Embed(
+                        title=":warning: 詐欺リンク",
+                        description="このリンクはPayPayの送金リンクではありません",
+                        color=discord.Color.red(),
+                    )
 
-                        content = ""
-                        for link, is_dangerous in links.items():
-                            status = ":x: 詐欺" if is_dangerous else ":blue_circle: 正常"
-                            content += f"{status}: `{link}`\n"
+                    content = ""
+                    for link in fake_links:
+                        content += f":x: 詐欺: `{link}`\n"
+                    for link in not_pay_but_qr:
+                        content += f":x: QRリンク: `{link}`\n"
+                    for link in not_qr_but_pay:
+                        content += f":question: 送金リンク: `{link}`\n"
+                    for link in safe_links:
+                        content += f":blue_circle: 正常 `{link}`\n"
 
-                        embed.add_field(name="検証結果", value=content)
+                    embed.add_field(name="検証結果", value=content)
 
-                    else:
-                        embed = discord.Embed(
-                            title=":white_check_mark: 正常リンク",
-                            description="安全性が確認できました",
-                            color=3916277,
-                        )
+                elif not_pay_but_qr:
+                    embed = discord.Embed(
+                        title=":question: 不明リンク",
+                        description="このリンクはテキストの送金リンクと一致していません",
+                        color=discord.Color.red(),
+                    )
 
-                        content = ""
-                        for link, is_dangerous in links.items():
-                            status = ":x: 詐欺" if is_dangerous else ":blue_circle: 正常"
-                            content += f"{status}: `{link}`\n"
+                    content = ""
+                    for link in not_pay_but_qr:
+                        content += f":x: QRリンク: `{link}`\n"
+                    for link in not_qr_but_pay:
+                        content += f":question: 送金リンク: `{link}`\n"
+                    for link in safe_links:
+                        content += f":blue_circle: 正常 `{link}`\n"
 
-                        embed.add_field(name="検証結果", value=content)
-                    await msg.reply(embed=embed, mention_author=False)
+                    embed.add_field(name="検証結果", value=content)
+
+                elif not_qr_but_pay:
+                    embed = discord.Embed(
+                        title=":interrobang: 意味不明リンク",
+                        description="乞食かと思いきや、ただの送金リンクです。意味不明。",
+                        color=discord.Color.yellow(),
+                    )
+
+                    content = ""
+                    for link in not_qr_but_pay:
+                        content += f":question: 送金リンク: `{link}`\n"
+                    for link in safe_links:
+                        content += f":blue_circle: 正常 `{link}`\n"
+
+                    embed.add_field(name="検証結果", value=content)
+
+                else:
+                    embed = discord.Embed(
+                        title=":white_check_mark: 正常リンク",
+                        description="安全性が確認できました",
+                        color=3916277,
+                    )
+
+                    content = ""
+                    for link in fake_links:
+                        content += f":blue_circle: 正常: `{link}`\n"
+
+                    embed.add_field(name="検証結果", value=content)
+                await msg.reply(embed=embed, mention_author=False)
